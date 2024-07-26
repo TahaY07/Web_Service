@@ -1,11 +1,11 @@
-from fastapi import FastAPI, Depends, APIRouter, status
+from fastapi import FastAPI, Depends, APIRouter, HTTPException, status
 from pydantic import BaseModel
 
 import models
 from database import engine, SessionLocal
 from sqlalchemy.orm import Session
 
-apps = FastAPI()
+app = FastAPI()
 
 models.Base.metadata.create_all(engine)
 
@@ -36,13 +36,15 @@ def read_user(db: Session = Depends(get_db)):
     return db.query(models.User).all()
 
 
-#?
+
 @router.get("/read/{id}",response_description="by_id")
-def read_user_by_id(sd: int, db: Session = Depends(get_db)):
-    result = db.query(models.User).filter_by(id=sd)
+def read_user_by_id(id: int, db: Session = Depends(get_db)):
+    result = db.query(models.User).filter(models.User.id==id).first()
+    if result is None:
+        raise HTTPException(status_code=404, detail="User not found")
     return result
 
-#ok
+
 @router.post("/create")
 def create_user(user: User, db: Session = Depends(get_db)):
     user_model = models.User()
@@ -53,23 +55,28 @@ def create_user(user: User, db: Session = Depends(get_db)):
     return user
 
 
-@router.put("/{id}")
-def update_id(user: User, db: Session = Depends(get_db)):
-    book_model = db.query(models.User).filter(models.User.id)
-    db.add(book_model)
+@router.put("/{id}/{newid}")
+def update_id(id:int, newid:int, db: Session = Depends(get_db)):
+    
+    user_model = db.query(models.User).filter(models.User.id == id).first()
+    if user_model is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    user_model.id = newid
     db.commit()
-    return user
+    return user_model
 
-#?
+
 @router.delete("/delete/{user_id}")
 def delete_user(user_id: int, db: Session = Depends(get_db)):
     
     user = db.query(models.User).filter(models.User.id == user_id).first()
-    if user:
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    else:
         db.delete(user)
         db.commit()
-        return 'Deleted'
+        return {"detail":"Deleted"}
     
 
-apps.include_router(router)
-
+app.include_router(router)
