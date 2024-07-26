@@ -6,4 +6,4 @@ Before we begin, make sure you have the following installed:
 
 - Python 3.x & Fast API 
 - A code editor (suggest Vsc)
-- Postgresql 
+- Postgresql database
